@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OP TCG Price Monitor</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg:#0f0f0f;--bg2:#181818;--bg3:#222;
+    --border:#2a2a2a;--border2:#383838;
+    --text:#f0f0f0;--text2:#888;--text3:#555;
+    --red:#e05050;--red-bg:#2a1515;
+    --green:#3ec97a;--green-bg:#0e2619;
+    --orange:#d96c2e;--orange-bg:#2a180d;
+    --accent:#d96c2e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 1.5rem;height:58px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;}
+  .logo{width:34px;height:34px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+  .brand{font-size:17px;font-weight:800;letter-spacing:-.5px;}
+  .brand span{color:var(--accent);}
+  .brand-sub{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+  .header-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;font-weight:500;border:1px solid;cursor:default;}
+  .badge-alert{background:var(--red-bg);color:var(--red);border-color:#5a2020;}
+  .badge-alert.none{background:var(--bg3);color:var(--text2);border-color:var(--border);}
+  .badge-alert.pulse{animation:blink 1.8s ease infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+  .tabs{display:flex;border-bottom:1px solid var(--border);background:var(--bg2);padding:0 1.5rem;}
+  .tab{padding:12px 18px;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all .15s;font-family:'Syne',sans-serif;}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent);}
+  .tab:hover{color:var(--text);}
+  main{padding:1.5rem;max-width:1300px;margin:auto;}
+  .panel{display:none;}.panel.active{display:block;}
+  .section-label{font-size:10px;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;font-weight:500;}
+  .add-form{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;display:flex;gap:10px;align-items:center;}
+  .add-form input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;transition:border-color .15s;}
+  .add-form input:focus{border-color:var(--accent);}
+  .add-form input::placeholder{color:var(--text3);}
+  .btn{padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:'Syne',sans-serif;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+  .btn:hover{background:var(--border);}
+  .btn:active{transform:scale(0.98);}
+  .btn:disabled{opacity:0.5;cursor:not-allowed;}
+  .btn-accent{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .btn-accent:hover{background:#b85824;border-color:#b85824;}
+  .btn-green{background:#1a4a2e;color:var(--green);border-color:#1d6b3e;}
+  .btn-green:hover{background:#1d6b3e;}
+  .btn-sm{padding:6px 12px;font-size:12px;}
+  .threshold-bar{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .threshold-bar label{font-size:13px;color:var(--text2);white-space:nowrap;}
+  .threshold-bar input[type=range]{flex:1;min-width:120px;accent-color:var(--accent);}
+  .threshold-val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500;color:var(--accent);min-width:42px;}
+  .interval-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;}
+  .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+  .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s;}
+  .card:hover{border-color:var(--border2);}
+  .card.alert-up{border-color:#5a2020;}.card.alert-down{border-color:#0e3d22;}
+  .card-stripe{height:3px;background:var(--border);}
+  .card-stripe.up{background:var(--red);}.card-stripe.down{background:var(--green);}
+  .card-body{padding:1rem 1.25rem;}
+  .card-body-inner{display:flex;gap:12px;align-items:flex-start;}
+  .card-body-right{flex:1;min-width:0;}
+  .card-img-wrap{width:70px;height:98px;flex-shrink:0;border-radius:7px;overflow:hidden;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;}
+  .card-img-wrap img{width:100%;height:100%;object-fit:cover;display:block;}
+  .card-img-placeholder{font-size:28px;color:var(--text3);}
+  .card-title-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+  .card-name{font-size:14px;font-weight:700;letter-spacing:-.3px;}
+  .card-meta{font-size:10px;color:var(--text2);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+  .card-actions{display:flex;gap:5px;}
+  .icon-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+  .icon-btn:hover{color:var(--text);border-color:var(--border2);background:var(--bg3);}
+  .icon-btn.danger:hover{color:var(--red);border-color:#5a2020;background:var(--red-bg);}
+  .prices-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;}
+  .price-box{background:var(--bg3);border-radius:8px;padding:8px 6px;text-align:center;}
+  .price-box-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:3px;font-family:'JetBrains Mono',monospace;}
+  .price-box-val{font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+  .price-box-val.loading{color:var(--text3);font-size:11px;}
+  .card-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px;}
+  .var-badge{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;display:flex;align-items:center;gap:3px;}
+  .var-badge.up{background:var(--red-bg);color:var(--red);}
+  .var-badge.down{background:var(--green-bg);color:var(--green);}
+  .var-badge.flat{background:var(--bg3);color:var(--text2);}
+  .last-check{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+  .empty{text-align:center;padding:4rem 1rem;background:var(--bg2);border-radius:12px;border:1px dashed var(--border2);}
+  .empty .big{font-size:42px;margin-bottom:12px;}
+  .empty p{font-size:14px;color:var(--text2);max-width:340px;margin:0 auto;}
+  /* Alerts */
+  .alerts-panel{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .alerts-header{padding:12px 1.25rem;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;border-bottom:1px solid var(--border);}
+  .alert-row{padding:10px 1.25rem;display:flex;align-items:center;gap:10px;font-size:13px;border-bottom:1px solid var(--border);}
+  .alert-row:last-child{border-bottom:none;}
+  .alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .alert-dot.up{background:var(--red);}.alert-dot.down{background:var(--green);}
+  .alert-img{width:36px;height:50px;border-radius:4px;object-fit:cover;flex-shrink:0;}
+  .alert-pct{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;margin-left:auto;white-space:nowrap;}
+  .alert-pct.up{color:var(--red);}.alert-pct.down{color:var(--green);}
+  .alert-time{font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;}
+  /* Sync panel */
+  .sync-status-bar{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .sync-stat{text-align:center;}
+  .sync-stat-val{font-size:22px;font-weight:800;color:var(--accent);font-family:'JetBrains Mono',monospace;}
+  .sync-stat-label{font-size:11px;color:var(--text2);margin-top:2px;}
+  .sync-divider{width:1px;height:40px;background:var(--border);}
+  /* Settings */
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+  .setting-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;}
+  .setting-card h3{font-size:14px;font-weight:600;margin-bottom:12px;}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px;}
+  .field input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;transition:border-color .15s;}
+  .field input:focus{border-color:var(--accent);}
+  /* History modal */
+  .history-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;z-index:200;padding:1rem;}
+  .history-modal.open{display:flex;}
+  .history-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:1.5rem;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;}
+  .history-box h2{font-size:17px;margin-bottom:1rem;}
+  canvas{width:100%!important;max-width:100%;}
+  .spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .source-chips{display:flex;gap:6px;flex-wrap:wrap;}
+  .source-chip{padding:3px 10px;border-radius:20px;font-size:11px;font-family:'JetBrains Mono',monospace;background:var(--orange-bg);color:var(--orange);border:1px solid #4a2a10;}
+  .status-bar{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;padding:6px 0;margin-bottom:1rem;}
+  /* Auto alerts table */
+  .auto-alert-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 1rem;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:border-color .2s;}
+  .auto-alert-card.up{border-left:3px solid var(--red);}
+  .auto-alert-card.down{border-left:3px solid var(--green);}
+  .auto-alert-card:hover{border-color:var(--border2);}
+  .aa-img{width:44px;height:62px;border-radius:5px;object-fit:cover;flex-shrink:0;}
+  .aa-info{flex:1;min-width:0;}
+  .aa-name{font-size:14px;font-weight:700;}
+  .aa-sub{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+  .aa-prices{text-align:right;flex-shrink:0;}
+  .aa-pct{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;}
+  .aa-pct.up{color:var(--red);}.aa-pct.down{color:var(--green);}
+  .aa-old-new{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+  .search-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'Syne',sans-serif;font-size:14px;outline:none;width:100%;transition:border-color .15s;margin-bottom:1rem;}
+  .search-input:focus{border-color:var(--accent);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏴‍☠️</div>
+  <div>
+    <div class="brand">OP TCG <span>Price Monitor</span></div>
+    <div class="brand-sub">preços reais · scraping ao vivo</div>
+  </div>
+  <div class="header-right">
+    <div class="source-chips">
+      <span class="source-chip">Liga One Piece</span>
+      <span class="source-chip">CardMarket</span>
+      <span class="source-chip">CardTrader</span>
+    </div>
+    <div class="badge badge-alert none" id="alertBadge">0 alertas</div>
+    <button class="btn" id="refreshAllBtn" onclick="refreshAll()">↻ Atualizar tudo</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('monitor')">📊 Monitor Manual</button>
+  <button class="tab" onclick="showTab('sync')">🌐 Monitor Automático</button>
+  <button class="tab" onclick="showTab('alerts')">🔔 Alertas</button>
+  <button class="tab" onclick="showTab('settings')">⚙️ Configurações</button>
+</div>
+
+<main>
+
+  <!-- ── MONITOR MANUAL ── -->
+  <div class="panel active" id="panel-monitor">
+    <div class="add-form">
+      <input type="text" id="cardInput" placeholder="Código ou nome da carta (ex: OP01-001, Roronoa Zoro...)" />
+      <button class="btn btn-accent" onclick="addCard()">+ Monitorar</button>
+    </div>
+    <div class="threshold-bar">
+      <label>Alertar quando variação ≥</label>
+      <input type="range" min="5" max="50" value="20" step="5" id="thresholdSlider" oninput="onThresholdChange(this.value)">
+      <span class="threshold-val" id="thresholdDisplay">20%</span>
+      <label style="margin-left:16px;">Intervalo:</label>
+      <select class="interval-select" id="intervalSelect" onchange="onIntervalChange(this.value)">
+        <option value="15">15 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="60">1 hora</option>
+        <option value="180">3 horas</option>
+        <option value="360">6 horas</option>
+      </select>
+    </div>
+    <div class="status-bar" id="statusBar">Pronto.</div>
+    <div class="section-label">Cartas monitoradas (<span id="cardCount">0</span>)</div>
+    <div class="cards-grid" id="cardsGrid">
+      <div class="empty"><div class="big">🃏</div><p>Adicione cartas para monitorar os preços reais</p></div>
+    </div>
+  </div>
+
+  <!-- ── MONITOR AUTOMÁTICO ── -->
+  <div class="panel" id="panel-sync">
+    <div class="sync-status-bar">
+      <div class="sync-stat">
+        <div class="sync-stat-val" id="syncTotalCards">—</div>
+        <div class="sync-stat-label">Cartas monitoradas</div>
+      </div>
+      <div class="sync-divider"></div>
+      <div class="sync-stat">
+        <div class="sync-stat-val" id="syncTotalAlerts">—</div>
+        <div class="sync-stat-label">Alertas gerados</div>
+      </div>
+      <div class="sync-divider"></div>
+      <div class="sync-stat">
+        <div class="sync-stat-val" style="font-size:13px;" id="syncLastRun">Nunca</div>
+        <div class="sync-stat-label">Última sincronização</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-green" id="syncBtn" onclick="runSync()">
+          🔄 Sincronizar agora
+        </button>
+      </div>
+    </div>
+
+    <div id="syncProgressWrap" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:13px;font-weight:600;">Sincronizando todas as cartas...</span>
+        <span id="syncProgressPct" style="font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--accent);font-weight:700;">0%</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:20px;height:10px;overflow:hidden;">
+        <div id="syncProgressBar" style="height:100%;background:linear-gradient(90deg,var(--accent),#ff9a5c);border-radius:20px;width:0%;transition:width .5s ease;"></div>
+      </div>
+      <div id="syncProgressExp" style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;margin-top:6px;"></div>
+    </div>
+
+    <p style="font-size:13px;color:var(--text2);margin-bottom:1rem;line-height:1.6;">
+      O monitor automático busca os preços de <strong style="color:var(--text)">todas as cartas</strong> do One Piece TCG 
+      uma vez por dia e gera alertas quando qualquer carta variar ≥ <strong style="color:var(--accent)" id="syncThreshold">20%</strong>. 
+      Clique em <strong style="color:var(--green)">Sincronizar agora</strong> para iniciar a primeira sincronização 
+      (pode demorar 30-60 minutos).
+    </p>
+
+    <div class="section-label">Alertas automáticos recentes</div>
+    <div id="autoAlertsList">
+      <div class="empty"><div class="big">🔍</div><p>Nenhum alerta ainda. Execute a sincronização para começar.</p></div>
+    </div>
+  </div>
+
+  <!-- ── ALERTAS MANUAIS ── -->
+  <div class="panel" id="panel-alerts">
+    <div class="alerts-panel">
+      <div class="alerts-header">🔔 Alertas de cartas monitoradas manualmente</div>
+      <div id="alertsList"><div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:14px;">Nenhum alerta ainda</div></div>
+    </div>
+  </div>
+
+  <!-- ── CONFIGURAÇÕES ── -->
+  <div class="panel" id="panel-settings">
+    <div class="settings-grid">
+      <div class="setting-card">
+        <h3>📱 Notificações Telegram</h3>
+        <div class="field"><label>Bot Token</label><input id="telegramToken" type="password" placeholder="123456789:AAFxxxxx"></div>
+        <div class="field"><label>Chat ID</label><input id="telegramChatId" placeholder="Seu chat ID (ex: 8883175828)"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button class="btn btn-accent" style="flex:1" onclick="saveSettings()">Salvar</button>
+          <button class="btn btn-green" onclick="testTelegram()">🔔 Testar</button>
+        </div>
+        <p style="font-size:11px;color:var(--text2);margin-top:8px;line-height:1.5;">
+          1. Crie um bot com @BotFather<br>
+          2. Mande uma msg para o bot e acesse<br>
+          <code style="color:var(--accent)">api.telegram.org/botTOKEN/getUpdates</code><br>
+          3. Copie o <code style="color:var(--accent)">chat.id</code>
+        </p>
+      </div>
+      <div class="setting-card">
+        <h3>📧 Notificações por Email</h3>
+        <div class="field"><label>Destinatário</label><input id="emailTo" type="email" placeholder="seu@email.com"></div>
+        <div class="field"><label>Remetente (Gmail)</label><input id="emailFrom" type="email" placeholder="monitor@gmail.com"></div>
+        <div class="field"><label>Senha de App Gmail</label><input id="smtpPassword" type="password" placeholder="xxxx xxxx xxxx xxxx"></div>
+        <div class="field"><label>SMTP Host</label><input id="smtpHost" value="smtp.gmail.com"></div>
+        <div class="field"><label>SMTP Port</label><input id="smtpPort" value="587"></div>
+        <button class="btn btn-accent" style="margin-top:8px;width:100%" onclick="saveSettings()">Salvar configurações</button>
+      </div>
+      <div class="setting-card">
+        <h3>ℹ️ Como usar</h3>
+        <p style="font-size:13px;color:var(--text2);line-height:1.7;">
+          <strong style="color:var(--text)">Monitor Manual:</strong> adicione cartas específicas para acompanhar de perto.<br><br>
+          <strong style="color:var(--text)">Monitor Automático:</strong> sincroniza todas as cartas do jogo 1x por dia e alerta variações de preço.<br><br>
+          Configure o email para receber alertas automáticos quando qualquer carta variar.
+        </p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- History modal -->
+<div class="history-modal" id="historyModal">
+  <div class="history-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h2 id="historyTitle">Histórico de preços</h2>
+      <button class="btn btn-sm" onclick="closeHistory()">✕ Fechar</button>
+    </div>
+    <canvas id="historyChart" height="280"></canvas>
+    <div id="historyTable" style="margin-top:1rem;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text2);max-height:200px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+let cards = [], alertsList = [], historyChart = null;
+
+function showTab(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'alerts') loadAlerts();
+  if (name === 'settings') loadSettings();
+  if (name === 'sync') loadSyncStatus();
+}
+
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  return res.json();
+}
+
+function setStatus(msg) { document.getElementById('statusBar').textContent = msg; }
+
+// ── Monitor Manual ──────────────────────────────────────────────────────────
+async function loadCards() {
+  try {
+    cards = await api('/api/cards');
+    renderCards();
+  } catch(e) { setStatus('Erro ao carregar cartas: ' + e.message); }
+}
+
+async function addCard() {
+  const input = document.getElementById('cardInput');
+  const name = input.value.trim();
+  if (!name) return;
+  input.value = '';
+  setStatus('Adicionando "' + name + '" e buscando preços...');
+  try {
+    await api('/api/cards', 'POST', { name });
+    setStatus('Carta adicionada! Scraping em andamento...');
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      await loadCards(); attempts++;
+      if (attempts > 30) clearInterval(poll);
+    }, 3000);
+  } catch(e) { setStatus('Erro: ' + e.message); }
+}
+
+async function removeCard(id) {
+  if (!confirm('Remover esta carta do monitoramento?')) return;
+  await api('/api/cards/' + id, 'DELETE');
+  await loadCards();
+}
+
+async function refreshCard(id) {
+  setStatus('Atualizando preços...');
+  await api('/api/cards/' + id + '/refresh', 'POST');
+  setStatus('Scraping iniciado, aguarde...');
+  setTimeout(loadCards, 6000);
+}
+
+async function refreshAll() {
+  const btn = document.getElementById('refreshAllBtn');
+  btn.innerHTML = '<span class="spinner"></span> Atualizando...';
+  btn.disabled = true;
+  await api('/api/refresh-all', 'POST');
+  setTimeout(async () => {
+    await loadCards();
+    btn.innerHTML = '↻ Atualizar tudo';
+    btn.disabled = false;
+    setStatus('Atualizado em ' + new Date().toLocaleTimeString('pt-BR'));
+  }, 8000);
+}
+
+function priceBox(label, data) {
+  if (!data) return `<div class="price-box"><div class="price-box-label">${label}</div><div class="price-box-val loading">—</div></div>`;
+  const sym = data.currency === 'BRL' ? 'R$' : '€';
+  return `<div class="price-box"><div class="price-box-label">${label}</div><div class="price-box-val">${sym}${parseFloat(data.price).toFixed(2)}</div></div>`;
+}
+
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  document.getElementById('cardCount').textContent = cards.length;
+  if (!cards.length) {
+    grid.innerHTML = '<div class="empty"><div class="big">🃏</div><p>Adicione cartas para monitorar os preços reais</p></div>';
+    return;
+  }
+  grid.innerHTML = cards.map(card => {
+    const prices = card.latest_prices || [];
+    const bySource = {};
+    prices.forEach(p => { bySource[p.source] = p; });
+    const vals = prices.filter(p => p.price).map(p => p.price);
+    const avg = vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+    const lastTime = prices.length ? new Date(prices[0].fetched_at + 'Z').toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '—';
+    const imgHtml = card.image_url
+      ? `<div class="card-img-wrap"><img src="${card.image_url}" alt="${card.name}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=\\'card-img-placeholder\\'>🃏</span>'"></div>`
+      : `<div class="card-img-wrap"><span class="card-img-placeholder">🃏</span></div>`;
+    const isCode = /^[a-z]{2}\d{2}-\d{3}$/i.test(card.name);
+    const nameDisplay = isCode ? card.name.toUpperCase() + ' · ' + (card.card_display_name || '') : (card.card_display_name || card.name);
+    const subDisplay = isCode ? (card.expansion_name || '') : (card.expansion_name || '');
+    return `
+    <div class="card" id="card-${card.id}">
+      <div class="card-stripe flat"></div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          ${imgHtml}
+          <div class="card-body-right">
+            <div class="card-title-row">
+              <div>
+                <div class="card-name">${nameDisplay}</div>
+                <div style="font-size:10px;color:var(--accent);font-family:'JetBrains Mono',monospace;margin-top:2px;">${subDisplay}</div>
+                <div class="card-meta">${avg ? '€' + avg.toFixed(2) + ' avg' : 'sem preço'} · ${prices.length} coletas</div>
+              </div>
+              <div class="card-actions">
+                <button class="icon-btn" title="Histórico" onclick="showHistory(${card.id},'${card.name.replace(/'/g,"\\'")}')">📈</button>
+                <button class="icon-btn" title="Atualizar" onclick="refreshCard(${card.id})">↻</button>
+                <button class="icon-btn danger" title="Remover" onclick="removeCard(${card.id})">✕</button>
+              </div>
+            </div>
+            <div class="prices-row">
+              ${priceBox('LIGA', bySource.liga)}
+              ${priceBox('CMARKET', bySource.cardmarket)}
+              ${priceBox('CTRADER', bySource.cardtrader)}
+            </div>
+            <div class="card-footer">
+              <span class="var-badge flat">—</span>
+              <span class="last-check">verificado ${lastTime}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Monitor Automático ──────────────────────────────────────────────────────
+async function loadSyncStatus() {
+  try {
+    const s = await api('/api/sync-status');
+    document.getElementById('syncTotalCards').textContent = s.total_cards.toLocaleString('pt-BR');
+    document.getElementById('syncTotalAlerts').textContent = s.total_auto_alerts.toLocaleString('pt-BR');
+    if (s.last_sync) {
+      const d = new Date(s.last_sync + 'Z');
+      document.getElementById('syncLastRun').textContent = d.toLocaleString('pt-BR');
+    }
+    // Update threshold display
+    const settings = await api('/api/settings');
+    document.getElementById('syncThreshold').textContent = (settings.threshold_pct || 20) + '%';
+  } catch(e) {}
+  loadAutoAlerts();
+}
+
+async function loadAutoAlerts() {
+  try {
+    const alerts = await api('/api/auto-alerts?limit=50');
+    const container = document.getElementById('autoAlertsList');
+    if (!alerts.length) {
+      container.innerHTML = '<div class="empty"><div class="big">🔍</div><p>Nenhum alerta ainda. Execute a sincronização para começar.</p></div>';
+      return;
+    }
+    container.innerHTML = alerts.map(a => {
+      const pct = parseFloat(a.variation_pct);
+      const arrow = a.direction === 'up' ? '↑' : '↓';
+      const time = new Date(a.created_at + 'Z').toLocaleString('pt-BR');
+      return `
+      <div class="auto-alert-card ${a.direction}">
+        ${a.image_url ? `<img class="aa-img" src="${a.image_url}" onerror="this.style.display='none'">` : '<div class="aa-img" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;">🃏</div>'}
+        <div class="aa-info">
+          <div class="aa-name">${a.collector_number ? a.collector_number + ' · ' : ''}${a.card_name}</div>
+          <div class="aa-sub">${a.expansion}</div>
+          <div class="aa-sub" style="margin-top:3px;">${time}</div>
+        </div>
+        <div class="aa-prices">
+          <div class="aa-pct ${a.direction}">${arrow} ${pct > 0 ? '+' : ''}${pct.toFixed(1)}%</div>
+          <div class="aa-old-new">€${parseFloat(a.old_price).toFixed(2)} → €${parseFloat(a.new_price).toFixed(2)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+let syncPollTimer = null;
+
+async function runSync() {
+  const btn = document.getElementById('syncBtn');
+  btn.innerHTML = '<span class="spinner"></span> Iniciando...';
+  btn.disabled = true;
+  try {
+    await api('/api/run-sync', 'POST');
+    document.getElementById('syncProgressWrap').style.display = 'block';
+    btn.innerHTML = '<span class="spinner"></span> Sincronizando...';
+    startSyncPolling();
+  } catch(e) {
+    alert('Erro ao iniciar: ' + e.message);
+    btn.innerHTML = '🔄 Sincronizar agora';
+    btn.disabled = false;
+  }
+}
+
+function startSyncPolling() {
+  if (syncPollTimer) clearInterval(syncPollTimer);
+  syncPollTimer = setInterval(async () => {
+    try {
+      const p = await api('/api/sync-progress');
+      const pct = p.total > 0 ? Math.round((p.current / p.total) * 100) : 0;
+      document.getElementById('syncProgressBar').style.width = pct + '%';
+      document.getElementById('syncProgressPct').textContent = pct + '%';
+      document.getElementById('syncProgressExp').textContent =
+        p.current_expansion ? '['+ p.current +'/'+ p.total +'] ' + p.current_expansion : '';
+      if (!p.running && p.current > 0) {
+        clearInterval(syncPollTimer);
+        document.getElementById('syncProgressBar').style.width = '100%';
+        document.getElementById('syncProgressPct').textContent = '100%';
+        document.getElementById('syncProgressExp').textContent = '✅ Sincronização concluída!';
+        document.getElementById('syncBtn').innerHTML = '🔄 Sincronizar agora';
+        document.getElementById('syncBtn').disabled = false;
+        setTimeout(() => {
+          document.getElementById('syncProgressWrap').style.display = 'none';
+          loadSyncStatus();
+          loadAutoAlerts();
+        }, 4000);
+      }
+    } catch(e) {}
+  }, 2000);
+}
+
+// ── Alertas Manuais ─────────────────────────────────────────────────────────
+async function loadAlerts() {
+  alertsList = await api('/api/alerts');
+  renderAlerts();
+  updateAlertBadge();
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alertsList');
+  if (!alertsList.length) {
+    list.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--text2);font-size:14px;">Nenhum alerta ainda</div>';
+    return;
+  }
+  const srcLabels = { liga: 'Liga', cardmarket: 'CardMarket', cardtrader: 'CardTrader' };
+  list.innerHTML = alertsList.map(a => {
+    const sym = a.source === 'liga' ? 'R$' : '€';
+    const dir = a.direction === 'up' ? 'subiu' : 'baixou';
+    const time = new Date(a.created_at + 'Z').toLocaleString('pt-BR');
+    return `
+    <div class="alert-row">
+      <div class="alert-dot ${a.direction}"></div>
+      <div>
+        <strong>${a.card_name}</strong> ${dir} no <strong>${srcLabels[a.source] || a.source}</strong><br>
+        <span style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;">
+          ${sym}${parseFloat(a.old_price).toFixed(2)} → ${sym}${parseFloat(a.new_price).toFixed(2)}
+        </span>
+      </div>
+      <span class="alert-pct ${a.direction}">${a.variation_pct > 0 ? '+' : ''}${parseFloat(a.variation_pct).toFixed(1)}%</span>
+      <span class="alert-time">${time}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateAlertBadge() {
+  const badge = document.getElementById('alertBadge');
+  const n = alertsList.length;
+  badge.textContent = n + (n === 1 ? ' alerta' : ' alertas');
+  badge.className = 'badge badge-alert' + (n > 0 ? ' pulse' : ' none');
+}
+
+// ── History ─────────────────────────────────────────────────────────────────
+async function showHistory(cardId, cardName) {
+  document.getElementById('historyModal').classList.add('open');
+  document.getElementById('historyTitle').textContent = 'Histórico: ' + cardName;
+  const data = await api('/api/cards/' + cardId + '/prices');
+  const history = data.history || [];
+  const sources = ['liga', 'cardmarket', 'cardtrader'];
+  const colors = { liga: '#d96c2e', cardmarket: '#3ec97a', cardtrader: '#5b8dee' };
+  const labels = { liga: 'Liga', cardmarket: 'CardMarket', cardtrader: 'CardTrader' };
+  const bySource = {};
+  sources.forEach(s => { bySource[s] = []; });
+  history.forEach(h => { if (bySource[h.source]) bySource[h.source].push({ t: h.fetched_at, p: h.price }); });
+  const allTimes = [...new Set(history.map(h => h.fetched_at))].sort();
+  const timeLabels = allTimes.map(t => new Date(t + 'Z').toLocaleString('pt-BR', {month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}));
+  const datasets = sources.map(src => ({
+    label: labels[src],
+    data: allTimes.map(t => { const pt = bySource[src].find(p => p.t === t); return pt ? pt.p : null; }),
+    borderColor: colors[src], backgroundColor: colors[src] + '20',
+    tension: 0.3, spanGaps: true, pointRadius: 4,
+  }));
+  if (historyChart) historyChart.destroy();
+  historyChart = new Chart(document.getElementById('historyChart').getContext('2d'), {
+    type: 'line', data: { labels: timeLabels, datasets },
+    options: { responsive: true, plugins: { legend: { labels: { color: '#888' } } },
+      scales: { x: { ticks: { color: '#555', maxTicksLimit: 8 }, grid: { color: '#222' } }, y: { ticks: { color: '#555' }, grid: { color: '#222' } } } }
+  });
+  const symMap = { liga: 'R$', cardmarket: '€', cardtrader: '€' };
+  document.getElementById('historyTable').innerHTML = history.slice(0, 30).map(h => {
+    const t = new Date(h.fetched_at + 'Z').toLocaleString('pt-BR');
+    return `<div style="padding:4px 0;border-bottom:1px solid var(--border);">${t} · ${labels[h.source]||h.source} · ${symMap[h.source]||'€'}${parseFloat(h.price).toFixed(2)}</div>`;
+  }).join('');
+}
+
+function closeHistory() {
+  document.getElementById('historyModal').classList.remove('open');
+  if (historyChart) { historyChart.destroy(); historyChart = null; }
+}
+
+// ── Settings ─────────────────────────────────────────────────────────────────
+async function loadSettings() {
+  const s = await api('/api/settings');
+  document.getElementById('emailTo').value    = s.email_to || '';
+  document.getElementById('emailFrom').value  = s.email_from || '';
+  document.getElementById('smtpHost').value   = s.smtp_host || 'smtp.gmail.com';
+  document.getElementById('smtpPort').value   = s.smtp_port || '587';
+  document.getElementById('thresholdSlider').value = s.threshold_pct || '20';
+  document.getElementById('thresholdDisplay').textContent = (s.threshold_pct || '20') + '%';
+  document.getElementById('intervalSelect').value = s.check_interval_min || '30';
+  if (document.getElementById('telegramChatId')) {
+    document.getElementById('telegramChatId').value = s.telegram_chat_id || '';
+  }
+}
+
+async function saveSettings() {
+  const payload = {
+    email_to: document.getElementById('emailTo').value,
+    email_from: document.getElementById('emailFrom').value,
+    smtp_host: document.getElementById('smtpHost').value,
+    smtp_port: document.getElementById('smtpPort').value,
+    smtp_password: document.getElementById('smtpPassword').value,
+    telegram_token: document.getElementById('telegramToken').value,
+    telegram_chat_id: document.getElementById('telegramChatId').value,
+  };
+  if (!payload.smtp_password) delete payload.smtp_password;
+  if (!payload.telegram_token) delete payload.telegram_token;
+  await api('/api/settings', 'PUT', payload);
+  alert('Configurações salvas!');
+}
+
+async function testTelegram() {
+  const token = document.getElementById('telegramToken').value;
+  const chatId = document.getElementById('telegramChatId').value;
+  if (!chatId) { alert('Preencha o Chat ID!'); return; }
+  const res = await api('/api/test-telegram', 'POST', { token, chat_id: chatId });
+  if (res.ok) {
+    alert('✅ Mensagem de teste enviada! Verifique o Telegram.');
+  } else {
+    alert('❌ Falha ao enviar. Verifique o token e chat ID.');
+  }
+}
+
+function onThresholdChange(val) {
+  document.getElementById('thresholdDisplay').textContent = val + '%';
+  api('/api/settings', 'PUT', { threshold_pct: val });
+}
+
+function onIntervalChange(val) {
+  api('/api/settings', 'PUT', { check_interval_min: val });
+  setStatus('Intervalo alterado para ' + val + ' min.');
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+document.getElementById('cardInput').addEventListener('keydown', e => { if (e.key === 'Enter') addCard(); });
+loadCards();
+loadAlerts();
+setInterval(async () => { await loadCards(); await loadAlerts(); }, 15000);
+</script>
+</body>
+</html>
