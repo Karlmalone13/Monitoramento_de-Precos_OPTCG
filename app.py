@@ -12,28 +12,6 @@ import scrapers
 import alerts as alert_engine
 import scheduler
 
-from functools import wraps
-from flask import request, Response
-
-DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "admin")
-DASHBOARD_PASS = os.environ.get("DASHBOARD_PASS", "optcg2026")
-
-def check_auth(username, password):
-    return username == DASHBOARD_USER and password == DASHBOARD_PASS
-
-def require_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return Response(
-                'Acesso negado. Informe usuário e senha.',
-                401,
-                {'WWW-Authenticate': 'Basic realm="OP TCG Monitor"'}
-            )
-        return f(*args, **kwargs)
-    return decorated
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -45,7 +23,6 @@ app = Flask(__name__, static_folder="frontend", static_url_path="")
 # ─── Serve frontend ───────────────────────────────────────────────────────────
 
 @app.route("/")
-@require_auth
 def index():
     return send_from_directory("frontend", "index.html")
 
@@ -53,6 +30,7 @@ def index():
 # ─── Cards ────────────────────────────────────────────────────────────────────
 
 @app.route("/api/cards", methods=["GET"])
+@require_auth
 def get_cards():
     cards = db.get_all_cards()
     enriched = []
@@ -63,6 +41,7 @@ def get_cards():
 
 
 @app.route("/api/cards", methods=["POST"])
+@require_auth
 def add_card():
     data = request.json or {}
     name = data.get("name", "").strip()
@@ -95,6 +74,7 @@ def add_card():
 
 
 @app.route("/api/cards/<int:card_id>", methods=["DELETE"])
+@require_auth
 def delete_card(card_id):
     db.remove_card(card_id)
     return jsonify({"ok": True})
@@ -103,6 +83,7 @@ def delete_card(card_id):
 # ─── Prices ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/cards/<int:card_id>/prices", methods=["GET"])
+@require_auth
 def get_prices(card_id):
     latest  = db.get_latest_prices(card_id)
     history = db.get_price_history(card_id, limit=100)
@@ -110,6 +91,7 @@ def get_prices(card_id):
 
 
 @app.route("/api/cards/<int:card_id>/refresh", methods=["POST"])
+@require_auth
 def refresh_card(card_id):
     """Force an immediate re-scrape for one card."""
     cards = [c for c in db.get_all_cards() if c["id"] == card_id]
@@ -139,6 +121,7 @@ def refresh_card(card_id):
 
 
 @app.route("/api/refresh-all", methods=["POST"])
+@require_auth
 def refresh_all():
     scheduler.run_now()
     return jsonify({"ok": True, "status": "cycle_started"})
@@ -147,6 +130,7 @@ def refresh_all():
 # ─── Alerts ───────────────────────────────────────────────────────────────────
 
 @app.route("/api/alerts", methods=["GET"])
+@require_auth
 def get_alerts():
     limit = int(request.args.get("limit", 50))
     return jsonify(db.get_alerts(limit))
@@ -155,6 +139,7 @@ def get_alerts():
 # ─── Settings ─────────────────────────────────────────────────────────────────
 
 @app.route("/api/settings", methods=["GET"])
+@require_auth
 def get_settings():
     settings = db.get_all_settings()
     # Never return the SMTP password
@@ -163,6 +148,7 @@ def get_settings():
 
 
 @app.route("/api/settings", methods=["PUT"])
+@require_auth
 def update_settings():
     data = request.json or {}
     allowed = {
@@ -186,6 +172,7 @@ def update_settings():
 # ─── Auto Alerts (sync_all) ───────────────────────────────────────────────────
 
 @app.route("/api/auto-alerts", methods=["GET"])
+@require_auth
 def get_auto_alerts():
     limit = int(request.args.get("limit", 100))
     conn = db.get_conn()
@@ -200,6 +187,7 @@ def get_auto_alerts():
 
 
 @app.route("/api/sync-status", methods=["GET"])
+@require_auth
 def sync_status():
     conn = db.get_conn()
     c = conn.cursor()
@@ -222,11 +210,13 @@ def sync_status():
 
 
 @app.route("/api/sync-progress", methods=["GET"])
+@require_auth
 def get_sync_progress():
     import sync_all
     return jsonify(sync_all.sync_progress)
 
 @app.route("/api/run-sync", methods=["POST"])
+@require_auth
 def run_sync():
     import threading, sync_all
     def _sync():
@@ -239,6 +229,7 @@ def run_sync():
 
 
 @app.route("/api/all-cards", methods=["GET"])
+@require_auth
 def get_all_cards_api():
     page  = int(request.args.get("page", 1))
     limit = int(request.args.get("limit", 50))
@@ -264,6 +255,7 @@ def get_all_cards_api():
     return jsonify({"cards": rows, "total": total})
 
 @app.route("/api/test-telegram", methods=["POST"])
+@require_auth
 def test_telegram():
     import telegram_notify
     data = request.json or {}
