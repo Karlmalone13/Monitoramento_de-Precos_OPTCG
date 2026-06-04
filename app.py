@@ -12,6 +12,28 @@ import scrapers
 import alerts as alert_engine
 import scheduler
 
+from functools import wraps
+from flask import request, Response
+
+DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "admin")
+DASHBOARD_PASS = os.environ.get("DASHBOARD_PASS", "optcg2026")
+
+def check_auth(username, password):
+    return username == DASHBOARD_USER and password == DASHBOARD_PASS
+
+def require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return Response(
+                'Acesso negado. Informe usuário e senha.',
+                401,
+                {'WWW-Authenticate': 'Basic realm="OP TCG Monitor"'}
+            )
+        return f(*args, **kwargs)
+    return decorated
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
@@ -23,6 +45,7 @@ app = Flask(__name__, static_folder="frontend", static_url_path="")
 # ─── Serve frontend ───────────────────────────────────────────────────────────
 
 @app.route("/")
+@require_auth
 def index():
     return send_from_directory("frontend", "index.html")
 
