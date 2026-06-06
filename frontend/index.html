@@ -169,10 +169,21 @@
 
   <!-- ── MONITOR MANUAL ── -->
   <div class="panel active" id="panel-monitor">
-    <div class="add-form">
-      <input type="text" id="cardInput" placeholder="Código ou nome da carta (ex: OP01-001, Roronoa Zoro...)" />
-      <button class="btn btn-accent" onclick="addCard()">+ Monitorar</button>
-    </div>
+    <div style="position:relative;margin-bottom:1.5rem;">
+  <div class="add-form" style="margin-bottom:0;">
+    <input type="text" id="cardInput" 
+      placeholder="Código ou nome da carta (ex: OP01-001, Roronoa Zoro...)"
+      oninput="onCardSearch(this.value)"
+      autocomplete="off"/>
+    <button class="btn btn-accent" onclick="addCard()">+ Monitorar</button>
+  </div>
+  <div id="cardDropdown" style="
+    display:none; position:absolute; left:0; right:0; z-index:50;
+    background:var(--bg2); border:1px solid var(--border2);
+    border-radius:10px; max-height:320px; overflow-y:auto;
+    box-shadow:0 8px 24px rgba(0,0,0,.5); margin-top:4px;
+  "></div>
+</div>
     <div class="threshold-bar">
       <label>Alertar quando variação ≥</label>
       <input type="range" min="5" max="50" value="20" step="5" id="thresholdSlider" oninput="onThresholdChange(this.value)">
@@ -333,6 +344,42 @@ async function loadCards() {
 }
 
 async function addCard() {
+  let searchTimer = null;
+
+async function onCardSearch(val) {
+  clearTimeout(searchTimer);
+  const dd = document.getElementById('cardDropdown');
+  if (val.length < 2) { dd.style.display = 'none'; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const results = await api('/api/search-cards?q=' + encodeURIComponent(val));
+      if (!results.length) { dd.style.display = 'none'; return; }
+      dd.style.display = 'block';
+      dd.innerHTML = results.map(r => `
+        <div onclick="selectCard('${(r.collector_number || r.name).replace(/'/g,"\\'")}', '${r.name.replace(/'/g,"\\'")}')"
+          style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;"
+          onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          ${r.image_url ? `<img src="${r.image_url}" style="width:32px;height:44px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : '<div style="width:32px;height:44px;background:var(--bg3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🃏</div>'}
+          <div>
+            <div style="font-size:13px;font-weight:600;">${r.collector_number ? r.collector_number + ' · ' : ''}${r.name}</div>
+            <div style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;">${r.expansion_name || ''}</div>
+          </div>
+        </div>
+      `).join('');
+    } catch(e) { dd.style.display = 'none'; }
+  }, 300);
+}
+
+function selectCard(code, name) {
+  document.getElementById('cardInput').value = code;
+  document.getElementById('cardDropdown').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.add-form')) {
+    document.getElementById('cardDropdown').style.display = 'none';
+  }
+});
   const input = document.getElementById('cardInput');
   const name = input.value.trim();
   if (!name) return;
@@ -673,6 +720,43 @@ function onIntervalChange(val) {
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 document.getElementById('cardInput').addEventListener('keydown', e => { if (e.key === 'Enter') addCard(); });
+
+let searchTimer = null;
+
+async function onCardSearch(val) {
+  clearTimeout(searchTimer);
+  const dd = document.getElementById('cardDropdown');
+  if (val.length < 2) { dd.style.display = 'none'; return; }
+  searchTimer = setTimeout(async () => {
+    try {
+      const results = await api('/api/search-cards?q=' + encodeURIComponent(val));
+      if (!results.length) { dd.style.display = 'none'; return; }
+      dd.style.display = 'block';
+      dd.innerHTML = results.map(r => `
+        <div onclick="selectCard('${(r.collector_number || r.name).replace(/'/g,"\\'")}')"
+          style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;"
+          onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          ${r.image_url ? `<img src="${r.image_url}" style="width:32px;height:44px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : '<div style="width:32px;height:44px;background:var(--bg3);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;">🃏</div>'}
+          <div>
+            <div style="font-size:13px;font-weight:600;">${r.collector_number ? r.collector_number + ' · ' : ''}${r.name}</div>
+            <div style="font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;">${r.expansion_name || ''}</div>
+          </div>
+        </div>
+      `).join('');
+    } catch(e) { dd.style.display = 'none'; }
+  }, 300);
+}
+
+function selectCard(code) {
+  document.getElementById('cardInput').value = code;
+  document.getElementById('cardDropdown').style.display = 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#cardDropdown') && !e.target.closest('.add-form')) {
+    document.getElementById('cardDropdown').style.display = 'none';
+  }
+});
 loadCards();
 loadAlerts();
 setInterval(async () => { await loadCards(); await loadAlerts(); }, 15000);

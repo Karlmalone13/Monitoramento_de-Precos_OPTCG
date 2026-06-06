@@ -286,7 +286,27 @@ def test_telegram():
     chat_id = data.get("chat_id") or db.get_setting("telegram_chat_id")
     ok = telegram_notify.test_connection(token, chat_id)
     return jsonify({"ok": ok})
-
+@app.route("/api/search-cards", methods=["GET"])
+@require_auth
+def search_cards():
+    q = request.args.get("q", "").strip().lower()
+    if len(q) < 2:
+        return jsonify([])
+    conn = db.get_conn()
+    c = conn.cursor()
+    try:
+        c.execute("""
+            SELECT collector_number, name, expansion_name, image_url
+            FROM all_cards
+            WHERE lower(name) LIKE ? OR lower(collector_number) LIKE ?
+            ORDER BY collector_number
+            LIMIT 10
+        """, (f"%{q}%", f"%{q}%"))
+        rows = [dict(r) for r in c.fetchall()]
+    except Exception:
+        rows = []
+    conn.close()
+    return jsonify(rows)
 
 # ─── Boot ─────────────────────────────────────────────────────────────────────
 
