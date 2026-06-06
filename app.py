@@ -5,12 +5,36 @@ app.py — Flask REST API for the One Piece TCG Price Monitor.
 import logging
 import os
 import threading
-from flask import Flask, jsonify, request, send_from_directory
+from functools import wraps
+from flask import Flask, jsonify, request, send_from_directory, Response
 
 import database as db
 import scrapers
 import alerts as alert_engine
 import scheduler
+
+# ─── Auth ────────────────────────────────────────────────────────────────────
+
+DASHBOARD_USER = os.environ.get("DASHBOARD_USER", "admin")
+DASHBOARD_PASS = os.environ.get("DASHBOARD_PASS", "optcg2026")
+
+def check_auth(username, password):
+    return username == DASHBOARD_USER and password == DASHBOARD_PASS
+
+def require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return Response(
+                'Acesso negado.',
+                401,
+                {'WWW-Authenticate': 'Basic realm="OP TCG Monitor"'}
+            )
+        return f(*args, **kwargs)
+    return decorated
+
+# ─── App ─────────────────────────────────────────────────────────────────────
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,26 +42,6 @@ logging.basicConfig(
 )
 
 app = Flask(__name__, static_folder="frontend", static_url_path="")
-
-
-# ─── Serve frontend ───────────────────────────────────────────────────────────
-
-@app.route("/")
-def index():
-    return send_from_directory("frontend", "index.html")
-
-
-# ─── Cards ────────────────────────────────────────────────────────────────────
-
-@app.route("/api/cards", methods=["GET"])
-@require_auth
-def get_cards():
-    cards = db.get_all_cards()
-    enriched = []
-    for card in cards:
-        latest = db.get_latest_prices(card["id"])
-        enriched.append({**card, "latest_prices": latest})
-    return jsonify(enriched)
 
 
 @app.route("/api/cards", methods=["POST"])
