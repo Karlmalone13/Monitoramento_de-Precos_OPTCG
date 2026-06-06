@@ -171,10 +171,11 @@
   <div class="panel active" id="panel-monitor">
     <div style="position:relative;margin-bottom:1.5rem;">
   <div class="add-form" style="margin-bottom:0;">
-    <input type="text" id="cardInput" 
-      placeholder="Código ou nome da carta (ex: OP01-001, Roronoa Zoro...)"
-      oninput="onCardSearch(this.value)"
-      autocomplete="off"/>
+  <input type="text" id="cardInput" 
+  placeholder="Código ou nome da carta (ex: OP01-001, Roronoa Zoro...)"
+  oninput="onCardSearch(this.value)"
+  autocomplete="new-password"
+  name="search"/>
     <button class="btn btn-accent" onclick="addCard()">+ Monitorar</button>
   </div>
   <div id="cardDropdown" style="

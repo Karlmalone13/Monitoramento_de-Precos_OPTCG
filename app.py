@@ -286,6 +286,7 @@ def test_telegram():
     chat_id = data.get("chat_id") or db.get_setting("telegram_chat_id")
     ok = telegram_notify.test_connection(token, chat_id)
     return jsonify({"ok": ok})
+
 @app.route("/api/search-cards", methods=["GET"])
 @require_auth
 def search_cards():
