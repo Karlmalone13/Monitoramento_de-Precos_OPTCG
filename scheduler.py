@@ -11,10 +11,10 @@ logger = logging.getLogger(__name__)
 
 _stop_event = threading.Event()
 _thread: threading.Thread | None = None
+_sync_running = False
 
 
 def _run_cycle():
-    """Fetch fresh prices for every manually monitored card."""
     cards = db.get_all_cards()
     if not cards:
         logger.info("[Scheduler] Nenhuma carta monitorada.")
@@ -49,26 +49,27 @@ def _run_cycle():
                 db.update_card_image(card_id, data["image_url"])
             if source == "cardtrader" and data.get("display_name"):
                 db.update_card_display_name(card_id, data["display_name"])
+            if source == "cardtrader" and data.get("expansion_name"):
+                db.update_card_expansion(card_id, data["expansion_name"])
 
     logger.info("[Scheduler] Ciclo manual concluído.")
 
 
 def _should_run_daily_sync():
-    """Verifica se já passou 24h desde a última sincronização completa."""
     last = db.get_setting("last_full_sync")
     if not last:
         return True
     try:
         last_dt = datetime.fromisoformat(last)
         diff = (datetime.utcnow() - last_dt).total_seconds()
-        return diff >= 86400  # 24 horas
+        return diff >= 86400
     except Exception:
         return True
 
-_sync_running = False
 
 def _is_syncing():
     return _sync_running
+
 
 def _loop():
     while not _stop_event.is_set():
@@ -77,15 +78,14 @@ def _loop():
         except Exception as e:
             logger.error(f"[Scheduler] Erro no ciclo manual: {e}")
 
-        # Verifica se precisa rodar a sync completa
         try:
-         if _should_run_daily_sync() and not _is_syncing():
-             logger.info("[Scheduler] Iniciando sincronização diária automática...")
-             import sync_all
-             sync_all.run_full_sync()
-             logger.info("[Scheduler] Sincronização diária concluída.")
+            if _should_run_daily_sync() and not _is_syncing():
+                logger.info("[Scheduler] Iniciando sincronização diária automática...")
+                import sync_all
+                sync_all.run_full_sync()
+                logger.info("[Scheduler] Sincronização diária concluída.")
         except Exception as e:
-             logger.error(f"[Scheduler] Erro na sync diária: {e}")
+            logger.error(f"[Scheduler] Erro na sync diária: {e}")
 
         interval_min = int(db.get_setting("check_interval_min") or 30)
         logger.info(f"[Scheduler] Aguardando {interval_min} min até o próximo ciclo.")
@@ -112,7 +112,6 @@ def stop():
 
 
 def run_now():
-    """Trigger an immediate manual scraping cycle (non-blocking)."""
     t = threading.Thread(target=_run_cycle, daemon=True, name="price-cycle-now")
     t.start()
     return t
