@@ -108,6 +108,13 @@ def update_card_display_name(card_id: int, display_name: str):
     conn.commit()
     conn.close()
 
+def update_card_expansion(card_id: int, expansion_name: str):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE cards SET expansion_name = ? WHERE id = ?", (expansion_name, card_id))
+    conn.commit()
+    conn.close()
+
 def remove_card(card_id: int):
     conn = get_conn()
     c = conn.cursor()
