@@ -608,32 +608,46 @@ function closeHistory() {
 // ── Settings ─────────────────────────────────────────────────────────────────
 async function loadSettings() {
   const s = await api('/api/settings');
+  // Email (menos sensível)
   document.getElementById('emailTo').value    = s.email_to || '';
   document.getElementById('emailFrom').value  = s.email_from || '';
   document.getElementById('smtpHost').value   = s.smtp_host || 'smtp.gmail.com';
   document.getElementById('smtpPort').value   = s.smtp_port || '587';
+  // Threshold e intervalo
   document.getElementById('thresholdSlider').value = s.threshold_pct || '20';
   document.getElementById('thresholdDisplay').textContent = (s.threshold_pct || '20') + '%';
   document.getElementById('intervalSelect').value = s.check_interval_min || '30';
+  // Telegram — não preenche campos sensíveis, só indica se está configurado
   if (document.getElementById('telegramChatId')) {
-    document.getElementById('telegramChatId').value = s.telegram_chat_id || '';
+    const configured = s.telegram_chat_id ? '✅ Configurado' : '';
+    document.getElementById('telegramChatId').placeholder = s.telegram_chat_id 
+      ? '✅ Chat ID configurado' 
+      : 'Seu chat ID (ex: 8883175828)';
+    document.getElementById('telegramToken').placeholder = s.telegram_chat_id
+      ? '✅ Token configurado (deixe em branco para manter)'
+      : '123456789:AAFxxxxx';
   }
 }
 
+async function saveSettings() {
 async function saveSettings() {
   const payload = {
     email_to: document.getElementById('emailTo').value,
     email_from: document.getElementById('emailFrom').value,
     smtp_host: document.getElementById('smtpHost').value,
     smtp_port: document.getElementById('smtpPort').value,
-    smtp_password: document.getElementById('smtpPassword').value,
-    telegram_token: document.getElementById('telegramToken').value,
-    telegram_chat_id: document.getElementById('telegramChatId').value,
   };
-  if (!payload.smtp_password) delete payload.smtp_password;
-  if (!payload.telegram_token) delete payload.telegram_token;
+  const smtpPass = document.getElementById('smtpPassword').value;
+  if (smtpPass) payload.smtp_password = smtpPass;
+  
+  const tgToken = document.getElementById('telegramToken').value;
+  const tgChat = document.getElementById('telegramChatId').value;
+  if (tgToken) payload.telegram_token = tgToken;
+  if (tgChat) payload.telegram_chat_id = tgChat;
+
   await api('/api/settings', 'PUT', payload);
   alert('Configurações salvas!');
+  loadSettings(); // Recarrega para mostrar status atualizado
 }
 
 async function testTelegram() {
