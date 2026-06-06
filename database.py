@@ -6,8 +6,10 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "monitor.db")
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=30)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 
@@ -98,7 +100,12 @@ def update_card_image(card_id: int, image_url: str):
     c.execute("UPDATE cards SET image_url = ? WHERE id = ?", (image_url, card_id))
     conn.commit()
     conn.close()
-
+def update_card_display_name(card_id: int, display_name: str):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE cards SET card_display_name = ? WHERE id = ?", (display_name, card_id))
+    conn.commit()
+    conn.close()
 
 def remove_card(card_id: int):
     conn = get_conn()
