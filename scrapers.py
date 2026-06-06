@@ -189,7 +189,7 @@ def _ct_search_blueprint(card_name: str) -> tuple[Optional[int], Optional[str]]:
                 card_display_name = bp.get("name", "").replace(".", " ").strip()
                 return bp_id, image_url or None, card_display_name, exp_name
 
-    return None, None, None
+    return None, None, None, None
 
 
 def get_card_image(card_name: str) -> Optional[str]:
