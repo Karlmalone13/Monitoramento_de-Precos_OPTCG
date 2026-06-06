@@ -140,6 +140,10 @@ def refresh_card(card_id):
                     alert_engine.check_and_alert(card_id, label, source, price, currency)
                 if source == "cardtrader" and data.get("image_url"):
                     db.update_card_image(card_id, data["image_url"])
+                if source == "cardtrader" and data.get("display_name"):
+                    db.update_card_display_name(card_id, data["display_name"])
+                if source == "cardtrader" and data.get("expansion_name"):
+                    db.update_card_expansion(card_id, data["expansion_name"])
         except Exception as e:
             logging.error(f"Refresh falhou para card {card_id}: {e}")
 
