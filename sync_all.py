@@ -17,7 +17,8 @@ load_dotenv()
 CARDTRADER_TOKEN = os.environ.get("CARDTRADER_TOKEN", "")
 CT_BASE = "https://api.cardtrader.com/api/v2"
 OP_GAME_ID = 15
-DB_PATH = os.path.join(os.path.dirname(__file__), "monitor.db")
+DATA_DIR = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH", os.path.dirname(__file__))
+DB_PATH = os.path.join(DATA_DIR, "monitor.db")
 
 logger = logging.getLogger(__name__)
 
