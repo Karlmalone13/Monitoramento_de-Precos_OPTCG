@@ -88,6 +88,10 @@ def add_card():
                 # Salva imagem se vier do cardtrader
                 if source == "cardtrader" and data.get("image_url"):
                     db.update_card_image(card_id, data["image_url"])
+                if source == "cardtrader" and data.get("display_name"):
+                    db.update_card_display_name(card_id, data["display_name"])
+                if source == "cardtrader" and data.get("expansion_name"):
+                    db.update_card_expansion(card_id, data["expansion_name"])
         except Exception as e:
             logging.error(f"Scrape imediato falhou: {e}")
 
