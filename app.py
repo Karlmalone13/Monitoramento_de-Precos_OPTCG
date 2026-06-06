@@ -43,6 +43,25 @@ logging.basicConfig(
 
 app = Flask(__name__, static_folder="frontend", static_url_path="")
 
+# ─── Serve frontend ───────────────────────────────────────────────────────────
+
+@app.route("/")
+@require_auth
+def index():
+    return send_from_directory("frontend", "index.html")
+
+
+# ─── Cards ────────────────────────────────────────────────────────────────────
+
+@app.route("/api/cards", methods=["GET"])
+@require_auth
+def get_cards():
+    cards = db.get_all_cards()
+    enriched = []
+    for card in cards:
+        latest = db.get_latest_prices(card["id"])
+        enriched.append({**card, "latest_prices": latest})
+    return jsonify(enriched)
 
 @app.route("/api/cards", methods=["POST"])
 @require_auth
