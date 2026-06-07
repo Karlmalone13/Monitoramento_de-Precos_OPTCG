@@ -51,16 +51,33 @@ def check_and_alert(card_id: int, card_name: str, source: str,
         tok = db.get_setting("telegram_token") or ""
         cid = db.get_setting("telegram_chat_id") or ""
         if tok and cid:
-            sym = CURRENCY_SYMBOLS.get(currency, currency)
+            # Busca dados da carta
+            card_image = None
+            card_display = card_name
+            card_expansion = ""
+            try:
+                conn2 = db.get_conn()
+                c2 = conn2.cursor()
+                c2.execute("SELECT image_url, card_display_name, expansion_name FROM cards WHERE name = ?", (card_name,))
+                row = c2.fetchone()
+                if row:
+                    card_image = row["image_url"]
+                    card_display = row["card_display_name"] or card_name
+                    card_expansion = row["expansion_name"] or ""
+                conn2.close()
+            except Exception:
+                pass
+
             telegram_notify.send_price_alert(
-                card_name=card_name,
-                collector=card_name,
-                expansion="",
+                card_name=card_display,
+                collector=card_name.upper(),
+                expansion=card_expansion,
                 direction=direction,
                 old_price=old_price,
                 new_price=new_price,
                 variation_pct=variation_pct,
                 source=SOURCE_LABELS.get(source, source),
+                image_url=card_image,
                 token=tok,
                 chat_id=cid
             )

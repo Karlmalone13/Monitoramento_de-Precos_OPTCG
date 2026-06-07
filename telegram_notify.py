@@ -51,6 +51,7 @@ def send_message(text: str, token: str = None, chat_id: str = None) -> bool:
 def send_price_alert(card_name: str, collector: str, expansion: str,
                      direction: str, old_price: float, new_price: float,
                      variation_pct: float, source: str = "CardTrader",
+                     image_url: str = None,
                      token: str = None, chat_id: str = None):
     """Formata e envia um alerta de variação de preço."""
     arrow   = "📈" if direction == "up" else "📉"
@@ -69,6 +70,11 @@ def send_price_alert(card_name: str, collector: str, expansion: str,
         f"🏴‍☠️ <i>OP TCG Price Monitor</i>"
     )
 
+    # Tenta enviar com foto, fallback para texto
+    if image_url:
+        ok = send_photo(image_url, text, token, chat_id)
+        if ok:
+            return True
     return send_message(text, token, chat_id)
 
 
@@ -78,3 +84,28 @@ def test_connection(token: str = None, chat_id: str = None) -> bool:
         "✅ <b>OP TCG Price Monitor</b>\n\nConexão com Telegram configurada com sucesso! 🏴‍☠️",
         token, chat_id
     )
+
+def send_photo(image_url: str, caption: str, token: str = None, chat_id: str = None) -> bool:
+    """Envia uma foto com legenda via Telegram."""
+    tok = token or TELEGRAM_TOKEN
+    cid = chat_id or TELEGRAM_CHAT_ID
+    if not tok or not cid:
+        return False
+
+    url = f"https://api.telegram.org/bot{tok}/sendPhoto"
+    data = json.dumps({
+        "chat_id": cid,
+        "photo": image_url,
+        "caption": caption,
+        "parse_mode": "HTML"
+    }).encode()
+
+    req = urllib.request.Request(url, data=data,
+                                  headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode())
+            return result.get("ok", False)
+    except Exception as e:
+        logger.error(f"[Telegram] Falha ao enviar foto: {e}")
+        return False
