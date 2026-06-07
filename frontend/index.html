@@ -186,21 +186,18 @@
   "></div>
 </div>
     <div class="threshold-bar">
-      <label>Alertar quando variação ≥</label>
-      <input type="range" min="5" max="50" value="20" step="5" id="thresholdSlider" oninput="onThresholdChange(this.value)">
-      <span class="threshold-val" id="thresholdDisplay">20%</span>
-      <label style="margin-left:16px;">Automático ≥</label>
-      <input type="range" min="5" max="50" value="20" step="5" id="thresholdAutoSlider" oninput="onThresholdAutoChange(this.value)">
-      <span class="threshold-val" id="thresholdAutoDisplay">20%</span>
-      <label style="margin-left:16px;">Intervalo:</label>
-      <select class="interval-select" id="intervalSelect" onchange="onIntervalChange(this.value)">
-        <option value="15">15 min</option>
-        <option value="30" selected>30 min</option>
-        <option value="60">1 hora</option>
-        <option value="180">3 horas</option>
-        <option value="360">6 horas</option>
-      </select>
-    </div>
+       <label>Alertar quando variação ≥</label>
+       <input type="range" min="5" max="50" value="20" step="5" id="thresholdSlider" oninput="onThresholdChange(this.value)">
+       <span class="threshold-val" id="thresholdDisplay">20%</span>
+       <label style="margin-left:16px;">Intervalo:</label>
+       <select class="interval-select" id="intervalSelect" onchange="onIntervalChange(this.value)">
+       <option value="15">15 min</option>
+       <option value="30" selected>30 min</option>
+       <option value="60">1 hora</option>
+       <option value="180">3 horas</option>
+       <option value="360">6 horas</option>
+       </select>
+     </div>
     <div class="status-bar" id="statusBar">Pronto.</div>
     <div class="section-label">Cartas monitoradas (<span id="cardCount">0</span>)</div>
     <div class="cards-grid" id="cardsGrid">
@@ -211,6 +208,11 @@
   <!-- ── MONITOR AUTOMÁTICO ── -->
   <div class="panel" id="panel-sync">
     <div class="sync-status-bar">
+      <div class="threshold-bar" style="margin-bottom:1rem;">
+         <label>Alertar quando variação ≥</label>
+         <input type="range" min="5" max="50" value="20" step="5" id="thresholdAutoSlider" oninput="onThresholdAutoChange(this.value)">
+          <span class="threshold-val" id="thresholdAutoDisplay">20%</span>
+       </div>
       <div class="sync-stat">
         <div class="sync-stat-val" id="syncTotalCards">—</div>
         <div class="sync-stat-label">Cartas monitoradas</div>
