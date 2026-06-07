@@ -67,6 +67,16 @@ def init_db():
         )
     """)
 
+    #---- Adiona migração para card_display_name e expansion_name ----
+    try:
+        c.execute("ALTER TABLE cards ADD COLUMN card_display_name TEXT")
+    except Exception:
+        pass
+    try:
+        c.execute("ALTER TABLE cards ADD COLUMN expansion_name TEXT")
+    except Exception:
+        pass
+
     # default threshold
     c.execute("INSERT OR IGNORE INTO settings VALUES ('threshold_pct', '20')")
     c.execute("INSERT OR IGNORE INTO settings VALUES ('check_interval_min', '30')")
