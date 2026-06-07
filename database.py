@@ -260,4 +260,14 @@ def get_all_settings():
     c.execute("SELECT key, value FROM settings")
     rows = {r["key"]: r["value"] for r in c.fetchall()}
     conn.close()
+    # Variáveis de ambiente têm prioridade para configs sensíveis
+    env_map = {
+        "telegram_token": "TELEGRAM_TOKEN",
+        "telegram_chat_id": "TELEGRAM_CHAT_ID",
+        "cardtrader_token": "CARDTRADER_TOKEN",
+    }
+    for key, env_var in env_map.items():
+        val = os.environ.get(env_var, "")
+        if val:
+            rows[key] = val
     return rows
