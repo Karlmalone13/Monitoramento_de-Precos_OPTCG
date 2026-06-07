@@ -183,7 +183,7 @@ def get_settings():
 def update_settings():
     data = request.json or {}
     allowed = {
-        "threshold_pct", "check_interval_min",
+        "threshold_pct", "threshold_manual_pct", "check_interval_min",
         "email_to", "email_from",
         "smtp_host", "smtp_port", "smtp_password",
         "telegram_token", "telegram_chat_id",

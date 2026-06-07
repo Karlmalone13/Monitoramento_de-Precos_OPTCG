@@ -32,7 +32,7 @@ def check_and_alert(card_id: int, card_name: str, source: str,
     Compare new_price to the previous recorded price for this card+source.
     If variation >= threshold, save an alert and return it. Otherwise None.
     """
-    threshold = float(db.get_setting("threshold_pct") or 20)
+    threshold = float(db.get_setting("threshold_manual_pct") or db.get_setting("threshold_pct") or 20)
     old_price = db.get_previous_price(card_id, source)
 
     if old_price is None or old_price == 0:

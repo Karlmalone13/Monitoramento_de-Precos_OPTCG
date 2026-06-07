@@ -189,6 +189,9 @@
       <label>Alertar quando variação ≥</label>
       <input type="range" min="5" max="50" value="20" step="5" id="thresholdSlider" oninput="onThresholdChange(this.value)">
       <span class="threshold-val" id="thresholdDisplay">20%</span>
+      <label style="margin-left:16px;">Automático ≥</label>
+      <input type="range" min="5" max="50" value="20" step="5" id="thresholdAutoSlider" oninput="onThresholdAutoChange(this.value)">
+      <span class="threshold-val" id="thresholdAutoDisplay">20%</span>
       <label style="margin-left:16px;">Intervalo:</label>
       <select class="interval-select" id="intervalSelect" onchange="onIntervalChange(this.value)">
         <option value="15">15 min</option>
@@ -665,6 +668,10 @@ async function loadSettings() {
   document.getElementById('thresholdSlider').value = s.threshold_pct || '20';
   document.getElementById('thresholdDisplay').textContent = (s.threshold_pct || '20') + '%';
   document.getElementById('intervalSelect').value = s.check_interval_min || '30';
+  document.getElementById('thresholdAutoSlider').value = s.threshold_pct || '20';
+  document.getElementById('thresholdAutoDisplay').textContent = (s.threshold_pct || '20') + '%';
+  document.getElementById('thresholdSlider').value = s.threshold_manual_pct || '20';
+  document.getElementById('thresholdDisplay').textContent = (s.threshold_manual_pct || '20') + '%';
   // Telegram — não preenche campos sensíveis, só indica se está configurado
   if (document.getElementById('telegramChatId')) {
     const configured = s.telegram_chat_id ? '✅ Configurado' : '';
@@ -711,6 +718,11 @@ async function testTelegram() {
 
 function onThresholdChange(val) {
   document.getElementById('thresholdDisplay').textContent = val + '%';
+  api('/api/settings', 'PUT', { threshold_manual_pct: val });
+}
+
+function onThresholdAutoChange(val) {
+  document.getElementById('thresholdAutoDisplay').textContent = val + '%';
   api('/api/settings', 'PUT', { threshold_pct: val });
 }
 

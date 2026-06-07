@@ -87,6 +87,7 @@ def init_db():
     c.execute("INSERT OR IGNORE INTO settings VALUES ('smtp_password', '')")
     c.execute("INSERT OR IGNORE INTO settings VALUES ('telegram_token', '')")
     c.execute("INSERT OR IGNORE INTO settings VALUES ('telegram_chat_id', '')")
+    c.execute("INSERT OR IGNORE INTO settings VALUES ('threshold_manual_pct', '20')")
 
     conn.commit()
     conn.close()
